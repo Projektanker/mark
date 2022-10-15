@@ -6,10 +6,11 @@ on:
 env:
   DOCKER_USERNAME: projektanker
   DOCKER_IMAGE: projektanker/mark
+  IMAGE_ARTIFACT: projektanker-mark
 
 jobs:
-  build-test-publish:
-    name: 🛠️ Build, 🧪 Test, 🚀 Publish
+  build-test:
+    name: 🛠️ Build, 🧪 Test
     runs-on: ubuntu-latest
 
     steps:
@@ -36,8 +37,37 @@ jobs:
             ./integration-test/test.pdf
             ./integration-test/docker.log
 
+      - name: 💾 Save Docker image
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: docker image save ${{ env.DOCKER_IMAGE }} > ${{ env.IMAGE_ARTIFACT }}.tar
+
+      - name: 📤 Upload
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.IMAGE_ARTIFACT }}
+          retention-days: 1
+          path: ${{ env.IMAGE_ARTIFACT }}.tar
+
+  publish:
+    name: 🚀 Publish
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🗝️ Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
+
+      - name: 📥 Download
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ env.IMAGE_ARTIFACT }}
+
+      - name: 💾 Load Docker image
+        run: docker image load < ${{ env.IMAGE_ARTIFACT }}.tar
+
       - name: 🏷️ Tag docker image
-        if: startsWith(github.ref_name, 'v')
         run: |
           readarray -d . -t TAG <<< ${{ github.ref_name }}
           echo "MAJOR: ${TAG[0]}; MINOR: ${TAG[1]}; PATCH: ${TAG[2]}"
@@ -45,17 +75,12 @@ jobs:
           docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${TAG[0]}.${TAG[1]}
           docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${TAG[0]}.${TAG[1]}.${TAG[2]}
 
-      - name: 📜 List docker images
+      - name: 🐋 List docker images
         run: docker image ls
 
-      - name: 🗝️ Login to Docker Hub
-        if: startsWith(github.ref_name, 'v')
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
-
       - name: 🚀 Push to Docker Hub
-        if: startsWith(github.ref_name, 'v')
         run: docker push --all-tags ${{ env.DOCKER_IMAGE }}
 
       - name: 🚪 Logout
-        if: startsWith(github.ref_name, 'v') && always()
+        if: always()
         run: docker logout
