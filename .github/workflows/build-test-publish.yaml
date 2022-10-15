@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 🗝️ Login to Docker Hub
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
       - name: 🐋 Build Docker image
         run: docker build . --file Dockerfile --tag ${{ env.DOCKER_REPO }}:latest
