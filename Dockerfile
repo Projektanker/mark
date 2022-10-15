@@ -37,8 +37,7 @@ COPY --from=publish /app .
 
 # install pandoc
 COPY --from=stage /src/pandoc.deb ./pandoc.deb
-RUN dpkg -i "pandoc.deb" && \
-    rm -f "pandoc.deb"
+RUN dpkg -i "pandoc.deb" && rm -f "pandoc.deb"
 
 # install playwright
 RUN dotnet Mark.Web.dll install && \
