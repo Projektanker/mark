@@ -15,9 +15,6 @@ jobs:
       - name: 🛒 Checkout
         uses: actions/checkout@v3
 
-      - name: 🗝️ Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-
       - name: 🐋 Build Docker image
         run: docker build . --file Dockerfile --tag ${{ env.DOCKER_REPO }}:latest
 
@@ -52,6 +49,9 @@ jobs:
 
       - name: 📜 List docker images
         run: docker image ls
+
+      - name: 🗝️ Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
       - name: 🚀 Push to Docker Hub
         if: ${{ startsWith(github.ref_name, 'v') }}
