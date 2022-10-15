@@ -1,0 +1,48 @@
+name: 🛠️ Build, 🧪 Test, 🚀 Publish
+
+on:
+  push:
+
+jobs:
+  build-test-publish:
+    name: 🛠️ Build, 🧪 Test, 🚀 Publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🛒 Checkout
+        uses: actions/checkout@v3
+
+      - name: 🐋 Build docker image
+        run: docker build . --file Dockerfile --tag projektanker/mark:latest
+
+      - name: 🧪 Integration test
+        working-directory: ./integration-test
+        run: |
+          docker run --name="test" -d -p="8080:8080" projektanker/mark:latest
+          sleep 5
+          curl -F "files=@metadata.yaml" -F "files=@template.zip" -o test.pdf http://localhost:8080/api/pdf
+          docker logs test > docker.log
+
+      - name: 📤 Upload test artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test
+          retention-days: 1
+          path: |
+            ./integration-test/test.pdf
+            ./integration-test/docker.log
+
+      - name: 🏷️ Tag docker image
+        if: ${{ startsWith(github.ref_name, 'v') }}
+        run: |
+          readarray -d . -t TAG_SEGMENTS <<< ${{ github.ref_name }}
+          MAJOR=${TAG_SEGMENTS[0]}
+          MINOR=${TAG_SEGMENTS[1]}
+          PATCH=${TAG_SEGMENTS[2]}
+          echo "MAJOR: $MAJOR; MINOR: $MINOR; PATCH: $PATCH"
+          docker tag projektanker/mark:latest projektanker/mark:${MAJOR}
+          docker tag projektanker/mark:latest projektanker/mark:${MAJOR}.${MINOR}
+          docker tag projektanker/mark:latest projektanker/mark:${MAJOR}.${MINOR}.${PATCH}
+
+      - name: 📜 List docker images
+        run: docker image ls
