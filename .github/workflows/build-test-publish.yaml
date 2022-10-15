@@ -4,7 +4,8 @@ on:
   push:
 
 env:
-  DOCKER_REPO: projektanker/mark
+  DOCKER_USERNAME: projektanker
+  DOCKER_IMAGE: projektanker/mark
 
 jobs:
   build-test-publish:
@@ -16,12 +17,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 🐋 Build Docker image
-        run: docker build . --file Dockerfile --tag ${{ env.DOCKER_REPO }}:latest
+        run: docker build . --file Dockerfile --tag ${{ env.DOCKER_IMAGE }}:latest
 
       - name: 🧪 Integration test
         working-directory: ./integration-test
         run: |
-          docker run --name="test" -d -p="8080:8080" ${{ env.DOCKER_REPO }}:latest
+          docker run --name="test" -d -p="8080:8080" ${{ env.DOCKER_IMAGE }}:latest
           sleep 5
           curl -F "files=@metadata.yaml" -F "files=@template.zip" -o test.pdf http://localhost:8080/api/pdf
           docker logs test > docker.log
@@ -38,24 +39,21 @@ jobs:
       - name: 🏷️ Tag docker image
         if: ${{ startsWith(github.ref_name, 'v') }}
         run: |
-          readarray -d . -t TAG_SEGMENTS <<< ${{ github.ref_name }}
-          MAJOR=${TAG_SEGMENTS[0]}
-          MINOR=${TAG_SEGMENTS[1]}
-          PATCH=${TAG_SEGMENTS[2]}
-          echo "MAJOR: $MAJOR; MINOR: $MINOR; PATCH: $PATCH"
-          docker tag ${{ env.DOCKER_REPO }}:latest ${{ env.DOCKER_REPO }}:${MAJOR}
-          docker tag ${{ env.DOCKER_REPO }}:latest ${{ env.DOCKER_REPO }}:${MAJOR}.${MINOR}
-          docker tag ${{ env.DOCKER_REPO }}:latest ${{ env.DOCKER_REPO }}:${MAJOR}.${MINOR}.${PATCH}
+          readarray -d . -t TAG <<< ${{ github.ref_name }}
+          echo "MAJOR: ${TAG[0]}; MINOR: ${TAG[1]}; PATCH: ${TAG[2]}"
+          docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${TAG[0]}
+          docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${TAG[0]}.${TAG[1]}
+          docker tag ${{ env.DOCKER_IMAGE }}:latest ${{ env.DOCKER_IMAGE }}:${TAG[0]}.${TAG[1]}.${TAG[2]}
 
       - name: 📜 List docker images
         run: docker image ls
 
       - name: 🗝️ Login to Docker Hub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
 
       - name: 🚀 Push to Docker Hub
         if: ${{ startsWith(github.ref_name, 'v') }}
-        run: docker push --all-tags ${{ env.DOCKER_REPO }}
+        run: docker push --all-tags ${{ env.DOCKER_IMAGE }}
 
       - name: 🚪 Logout
         if: always()
