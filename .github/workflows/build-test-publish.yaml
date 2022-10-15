@@ -37,7 +37,7 @@ jobs:
             ./integration-test/docker.log
 
       - name: 🏷️ Tag docker image
-        if: ${{ startsWith(github.ref_name, 'v') }}
+        if: startsWith(github.ref_name, 'v')
         run: |
           readarray -d . -t TAG <<< ${{ github.ref_name }}
           echo "MAJOR: ${TAG[0]}; MINOR: ${TAG[1]}; PATCH: ${TAG[2]}"
@@ -49,12 +49,13 @@ jobs:
         run: docker image ls
 
       - name: 🗝️ Login to Docker Hub
+        if: startsWith(github.ref_name, 'v')
         run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ env.DOCKER_USERNAME }} --password-stdin
 
       - name: 🚀 Push to Docker Hub
-        if: ${{ startsWith(github.ref_name, 'v') }}
+        if: startsWith(github.ref_name, 'v')
         run: docker push --all-tags ${{ env.DOCKER_IMAGE }}
 
       - name: 🚪 Logout
-        if: always()
+        if: startsWith(github.ref_name, 'v') && always()
         run: docker logout
