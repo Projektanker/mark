@@ -84,3 +84,13 @@ jobs:
       - name: 🚪 Logout
         if: always()
         run: docker logout
+
+  clean:
+    name: 🧹 Clean
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: 🪣 Delete Artifact
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: ${{ env.IMAGE_ARTIFACT }}
