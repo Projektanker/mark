@@ -24,8 +24,9 @@ jobs:
         working-directory: ./integration-test
         run: |
           docker run --name="test" -d -p="8080:8080" ${{ env.DOCKER_IMAGE }}:latest
-          sleep 5
-          curl -F "files=@metadata.yaml" -F "files=@template.zip" -o test.pdf http://localhost:8080/api/pdf
+          sleep 2
+          cd ./template && tar -cf ../template.tar *  && cd -
+          curl -F "files=@metadata.yaml" -F "files=@template.tar" -o test.pdf http://localhost:8080/api/pdf
           docker logs test > docker.log
 
       - name: 📤 Upload test artifacts
