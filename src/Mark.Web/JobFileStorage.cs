@@ -1,4 +1,7 @@
-﻿using System.IO.Compression;
+﻿using SharpCompress.Archives;
+using SharpCompress.Archives.Tar;
+using SharpCompress.Common;
+using ZipArchive = SharpCompress.Archives.Zip.ZipArchive;
 
 namespace Mark.Web;
 
@@ -14,6 +17,7 @@ public sealed class JobFileStorage : IJobFileStorage, IDisposable
         var task = fileExtension switch
         {
             ".ZIP" => WriteZip(jobId, stream),
+            ".TAR" => WriteTar(jobId, stream),
             _ => WriteNonArchiveFile(jobId, name, stream),
         };
 
@@ -42,15 +46,26 @@ public sealed class JobFileStorage : IJobFileStorage, IDisposable
 
     private async Task WriteZip(Guid jobId, Stream stream)
     {
+        using var archive = ZipArchive.Open(stream);
+        await WriteArchive(jobId, archive);
+    }
+
+    private async Task WriteTar(Guid jobId, Stream stream)
+    {
+        using var archive = TarArchive.Open(stream);
+        await WriteArchive(jobId, archive);
+    }
+
+    private async Task WriteArchive<TEntry, TVolume>(Guid jobId, AbstractArchive<TEntry, TVolume> archive)
+        where TEntry : IArchiveEntry
+        where TVolume : IVolume
+    {
         var jobDir = GetOrCreateJobDir(jobId);
         var absoluteJobDir = Path.GetFullPath(jobDir);
-
-        using var archive = new ZipArchive(stream);
-
-        foreach (ZipArchiveEntry entry in archive.Entries)
+        foreach (var entry in archive.Entries)
         {
             // Gets the full path to ensure that relative segments are removed.
-            var destinationPath = Path.GetFullPath(Path.Combine(jobDir, entry.FullName));
+            var destinationPath = Path.GetFullPath(Path.Combine(jobDir, entry.Key));
 
             // Ordinal match is safest, case-sensitive volumes can be mounted within volumes that
             // are case-insensitive.
@@ -60,7 +75,7 @@ public sealed class JobFileStorage : IJobFileStorage, IDisposable
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
-            using var entryStream = entry.Open();
+            using var entryStream = entry.OpenEntryStream();
             using var file = File.Create(destinationPath);
             await entryStream.CopyToAsync(file);
         }
