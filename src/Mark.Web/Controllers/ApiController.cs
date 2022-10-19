@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text;
 using Mark.HtmlToPdf;
 using Mark.MarkdownToHtml;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +23,7 @@ public class ApiController : ControllerBase
     }
 
     [HttpPost("pdf")]
-    [SwaggerResponse((int)HttpStatusCode.OK, "Download a file.", typeof(FileStreamResult))]
+    [SwaggerResponse((int)HttpStatusCode.OK, "pdf file", typeof(FileStreamResult))]
     public async Task<IActionResult> Pdf(IFormFileCollection files)
     {
         if (!ModelState.IsValid)
@@ -31,13 +32,46 @@ public class ApiController : ControllerBase
         }
 
         var jobId = Guid.NewGuid();
+        var (htmlDocument, error) = await GenerateHtml(jobId, files);
+
+        if (htmlDocument is null)
+        {
+            return BadRequest(error);
+        }
+
+        PdfDocument pdf = await GeneratePdf(jobId, htmlDocument);
+
+        return File(pdf.GetContentStream(), "application/pdf");
+    }
+
+    [HttpPost("html")]
+    [SwaggerResponse((int)HttpStatusCode.OK, "debug html file", typeof(FileStreamResult))]
+    public async Task<IActionResult> Html(IFormFileCollection files)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var jobId = Guid.NewGuid();
+        var (htmlDocument, error) = await GenerateHtml(jobId, files);
+
+        if (htmlDocument is null)
+        {
+            return BadRequest(error);
+        }
+
+        return File(Encoding.UTF8.GetBytes(htmlDocument.Html), "text/html");
+    }
+
+    private async Task<(HtmlDocument? Html, string Error)> GenerateHtml(Guid jobId, IFormFileCollection files)
+    {
         foreach (var file in files)
         {
             using var stream = file.OpenReadStream();
             await _jobFileStorage.WriteFile(jobId, file.FileName, stream);
         }
 
-        // 2. Generate DocumentJob
         const string templateFilename = "template.md";
         const string metadataFilename = "metadata.yaml";
         var markdownTemplateFile = _jobFileStorage.GetFilePathIfExists(jobId, templateFilename);
@@ -45,12 +79,12 @@ public class ApiController : ControllerBase
 
         if (markdownTemplateFile == null)
         {
-            return BadRequest($"Required file \"{templateFilename}\" is missing.");
+            return (null, $"Required file \"{templateFilename}\" is missing.");
         }
 
         if (metadataFile == null)
         {
-            return BadRequest($"Required file \"{metadataFilename}\" is missing.");
+            return (null, $"Required file \"{metadataFilename}\" is missing.");
         }
 
         var markdownToHtmlJob = new MarkdownToHtmlJob(
@@ -60,16 +94,18 @@ public class ApiController : ControllerBase
             htmlTemplateFile: _jobFileStorage.GetFilePathIfExists(jobId, "template.html"));
 
         var htmlDocument = await _markdownConverter.ToHtml(markdownToHtmlJob);
+        return (htmlDocument, string.Empty);
+    }
 
+    private async Task<PdfDocument> GeneratePdf(Guid jobId, HtmlDocument htmlDocument)
+    {
         var printJob = await PrintJobBuilder.FromHtml(htmlDocument.Html)
             .WithHeaderFile(_jobFileStorage.GetFilePathIfExists(jobId, "header.html"))
             .WithFooterFile(_jobFileStorage.GetFilePathIfExists(jobId, "footer.html"))
             .WithPageLayoutYamlFile(_jobFileStorage.GetFilePathIfExists(jobId, "pagelayout.yaml"))
             .ToPrintJob();
 
-        // 3. Generate Pdf
         var pdf = await _printer.PrintToPdf(printJob);
-
-        return File(pdf.GetContentStream(), "application/pdf");
+        return pdf;
     }
 }

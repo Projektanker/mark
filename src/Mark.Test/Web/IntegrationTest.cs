@@ -1,9 +1,8 @@
-﻿using System.IO;
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using System.Net;
+using System.Text;
 using Mark.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
-using SharpCompress.Archives;
 using SharpCompress.Archives.Tar;
 using SharpCompress.Common;
 using UglyToad.PdfPig;
@@ -21,7 +20,7 @@ public class IntegrationTest
     }
 
     [Fact]
-    public async Task Test_Without_ZIP_Archive()
+    public async Task Pdf_Without_ZIP_Archive()
     {
         FileDumper.EnsureDeleted("test-without-zip.pdf");
 
@@ -32,7 +31,7 @@ public class IntegrationTest
     }
 
     [Fact]
-    public async Task Test_With_ZIP_Archive()
+    public async Task Pdf_With_ZIP_Archive()
     {
         FileDumper.EnsureDeleted("test-with-zip.pdf");
 
@@ -47,7 +46,7 @@ public class IntegrationTest
     }
 
     [Fact]
-    public async Task Test_With_TAR_Archive()
+    public async Task Pdf_With_TAR_Archive()
     {
         FileDumper.EnsureDeleted("test-with-tar.pdf");
 
@@ -61,12 +60,26 @@ public class IntegrationTest
         await AssertResponse(response, "test-with-tar.pdf");
     }
 
+    [Fact]
+    public async Task Html_With_TAR_Archive()
+    {
+        FileDumper.EnsureDeleted("test-with-tar.html");
+
+        using var client = _factory.CreateClient();
+
+        var formContent = GetTarFormDataContent();
+        formContent.Should().HaveCount(1);
+
+        var response = await client.PostAsync("/api/html", formContent);
+
+        var content = await GetContentAndDumpFile(response, "test-with-tar.html");
+        var text = Encoding.UTF8.GetString(content);
+        text.Should().StartWith("<!DOCTYPE html>");
+    }
+
     private static async Task AssertResponse(HttpResponseMessage response, string outputFile)
     {
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsByteArrayAsync();
-
-        FileDumper.Write(outputFile, content);
+        var content = await GetContentAndDumpFile(response, outputFile);
         var pdfDoc = PdfDocument.Open(content);
 
         // Header
@@ -78,6 +91,15 @@ public class IntegrationTest
         // Body
         pdfDoc.ShouldContain("This is a test-sub-title");
         pdfDoc.ShouldContain("paragraph");
+    }
+
+    private static async Task<byte[]> GetContentAndDumpFile(HttpResponseMessage response, string outputFile)
+    {
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var content = await response.Content.ReadAsByteArrayAsync();
+
+        FileDumper.Write(outputFile, content);
+        return content;
     }
 
     private static MultipartFormDataContent GetFormDataContent()
