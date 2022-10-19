@@ -25,7 +25,7 @@ Optional files:
 - `template.html` to change the used html template. Defaults to pandoc HTML5 template (extract template with `pandoc -D html5`)
 - other files like images or fonts are also supported.
 
-Any of these files can be in one or more `*.zip` archives and will be extracted by the server. See `./integration-test` for an advanced example.
+Any of these files can be in one or more `*.zip` or `*.tar` archives and will be extracted by the server. See `./integration-test` for an advanced example.
 
 ## How does it work?
 
