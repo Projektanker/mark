@@ -62,7 +62,8 @@ public sealed class JobFileStorage : IJobFileStorage, IDisposable
     {
         var jobDir = GetOrCreateJobDir(jobId);
         var absoluteJobDir = Path.GetFullPath(jobDir);
-        foreach (var entry in archive.Entries)
+        var fileEntries = archive.Entries.Where(entry => !entry.IsDirectory);
+        foreach (var entry in fileEntries)
         {
             // Gets the full path to ensure that relative segments are removed.
             var destinationPath = Path.GetFullPath(Path.Combine(jobDir, entry.Key));
