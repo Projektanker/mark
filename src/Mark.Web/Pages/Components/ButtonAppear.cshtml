@@ -1,0 +1,20 @@
+﻿@model ButtonAppear
+@{
+    var classes = new ManyClasses
+    {
+        "bg-cyan-600",
+        "hover:bg-cyan-500",
+        "text-center",
+        "text-white",
+        "font-bold",
+        "border-4",
+        "border-transparent",
+        "rounded-diag",
+        "px-10",
+        "py-3",
+        "transition-colors",
+    };
+}
+<div class="@classes">
+    @Model.ChildContent
+</div>

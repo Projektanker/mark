@@ -1,0 +1,42 @@
+﻿@model MultiFileInput
+@{
+    var wrapper = new ManyClasses
+    {
+        "relative",
+        "border-4",
+        "border-cyan-600",
+        "hover:border-cyan-500",
+        "rounded-diag-lg",
+        "px-10",
+        "transition-colors",
+    };
+
+    var input = new ManyClasses
+    {
+        "absolute",
+        "top-0",
+        "left-0",
+        "h-full",
+        "w-full",
+        "opacity-0",
+        "cursor-pointer"
+    };
+}
+<div class="@wrapper"
+     x-data="{ count: 0 }"
+     x-modelable="count"
+     x-model=@Model.XModel>
+    <p class="text-center mt-10 font-bold">Click to upload your files</p>
+    <p class="text-center mt-3">or drop files here</p>
+    <p class="text-center mt-6 mb-3 text-neutral-500"
+       x-text="`${count === 0 ? 'No' : count} file${count === 1 ? '' : 's'} selected.`">
+        No files selected.
+    </p>
+    <input id="@Model.Id"
+           name="@Model.Name"
+           type="file"
+           multiple
+           class="@input"
+           x-ref="input"
+           x-on:input="count=$refs.input.files.length" />
+</div>

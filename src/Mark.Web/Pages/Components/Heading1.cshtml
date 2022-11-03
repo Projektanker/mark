@@ -1,0 +1,14 @@
+﻿@model Heading1
+@{
+    var classes = new ManyClasses
+    {
+        "text-3xl",
+        "font-bold",
+        "text-center",
+        "mt-6",
+    };
+}
+
+<h1 class="@classes">
+    @Model.ChildContent
+</h1>

@@ -1,0 +1,35 @@
+﻿@{
+    var defaults = (DefaultPageModel)Model;
+}
+<!DOCTYPE html>
+
+
+<html class="h-full font-sans text-neutral-900 antialiased">
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>@defaults.Title</title>
+    <link rel="stylesheet" href="https://code.cdn.mozilla.net/fonts/fira.css">
+    <script defer src="https://unpkg.com/alpinejs@3.10.5/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                fontFamily: {
+                    sans: ['Fira Sans', 'sans-serif']
+                },
+                extend: {
+                    borderRadius: {
+                        "diag": '2rem 1.5rem',
+                        "diag-lg": '3rem 2.25rem'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full">
+    <div class="container mx-auto h-full">
+        @RenderBody()
+    </div>
+</body>
+</html>

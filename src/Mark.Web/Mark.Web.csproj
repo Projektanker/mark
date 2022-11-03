@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Projektanker.RazorComponents" Version="1.1.0" />
     <PackageReference Include="SharpCompress" Version="0.32.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.4.0" />
@@ -15,6 +16,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Mark.MarkdownToHtml\Mark.MarkdownToHtml.csproj" />
     <ProjectReference Include="..\Mark.HtmlToPdf\Mark.HtmlToPdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
   </ItemGroup>
 
 </Project>
