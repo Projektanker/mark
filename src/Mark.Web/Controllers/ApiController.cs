@@ -41,7 +41,7 @@ public class ApiController : ControllerBase
 
         PdfDocument pdf = await GeneratePdf(jobId, htmlDocument);
 
-        return File(pdf.GetContentStream(), "application/pdf");
+        return File(pdf.GetContentStream(), "application/pdf", "mark.pdf");
     }
 
     [HttpPost("html")]
